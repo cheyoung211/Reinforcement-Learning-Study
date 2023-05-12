@@ -121,9 +121,9 @@ class Agent:
             return self.min_trading_price
         added_trading_price = max(min(
             int(confidence * (self.max_trading_price - self.min_trading_price)),
-            self.max_trading_price-self.min_trading_price), 0)
-        trading_price = self.min_trading_price + added_trading_price
-        return max(int(trading_price / self.environment.get_price()), 1)
+            self.max_trading_price-self.min_trading_price), 0)  # 신뢰도*(고가 - 저가)와 (고가 - 저가) 중에 작은 값과 0 중에 큰 값
+        trading_price = self.min_trading_price + added_trading_price  # 거래 가격 = 저가 + 추가 가격
+        return max(int(trading_price / self.environment.get_price()), 1)  # 거래 가격 / 종가 , 1 중에 큰 값
 
     def act(self, action, confidence):
         if not self.validate_action(action):
