@@ -45,7 +45,7 @@ class Agent:
         self.profitloss = 0  # 손익률
         self.avg_buy_price = 0  # 주당 매수 단가
 
-    def reset(self):
+    def reset(self):  # Agent 클래스 속성 초기화 - 학습 단계에서 한 에포크마다 초기화
         self.balance = self.initial_balance
         self.num_stocks = 0
         self.portfolio_value = self.initial_balance
@@ -56,12 +56,12 @@ class Agent:
         self.profitloss = 0
         self.avg_buy_price = 0
 
-    def set_balance(self, balance):
+    def set_balance(self, balance):  # 에이전트의 초기 자본금 설정
         self.initial_balance = balance
 
-    def get_states(self):
+    def get_states(self):  # 에이전트의 상태 반환
         self.ratio_hold = self.num_stocks * self.environment.get_price() \
-            / self.portfolio_value
+            / self.portfolio_value  # (보유 주식 수) * (종가) / (포트폴리오 가치)
         return (
             self.ratio_hold,
             self.profitloss,
