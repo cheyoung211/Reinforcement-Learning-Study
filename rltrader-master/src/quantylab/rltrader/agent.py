@@ -65,8 +65,8 @@ class Agent:
         return (
             self.ratio_hold,
             self.profitloss,
-            (self.environment.get_price() / self.avg_buy_price) - 1 \
-                if self.avg_buy_price > 0 else 0
+            (self.environment.get_price() / self.avg_buy_price) - 1 \  # (종가) / (평균 매수 단가)
+                if self.avg_buy_price > 0 else 0 
         )
 
     def decide_action(self, pred_value, pred_policy, epsilon):
@@ -90,12 +90,12 @@ class Agent:
             #         epsilon = 1
 
         # 탐험 결정
-        if np.random.rand() < epsilon:
+        if np.random.rand() < epsilon:  # 랜덤하게 값을 생성해서 epsilon보다 작으면 탐험
             exploration = True
-            action = np.random.randint(self.NUM_ACTIONS)
+            action = np.random.randint(self.NUM_ACTIONS)  # 행동도 랜덤하게 선택 - 매수 또는 매도
         else:
             exploration = False
-            action = np.argmax(pred)
+            action = np.argmax(pred)  # 정해진 정책대로 행동
 
         confidence = .5
         if pred_policy is not None:
@@ -105,18 +105,18 @@ class Agent:
 
         return action, confidence, exploration
 
-    def validate_action(self, action):
+    def validate_action(self, action):  # 행동의 유효성 검사
         if action == Agent.ACTION_BUY:
             # 적어도 1주를 살 수 있는지 확인
-            if self.balance < self.environment.get_price() * (1 + self.TRADING_CHARGE):
+            if self.balance < self.environment.get_price() * (1 + self.TRADING_CHARGE):  # (잔고) < (종가 + 거래 수수료) 이면 매수 불가
                 return False
         elif action == Agent.ACTION_SELL:
             # 주식 잔고가 있는지 확인
-            if self.num_stocks <= 0:
+            if self.num_stocks <= 0:  # 보유 주식이 없으면 매도 불가
                 return False
         return True
 
-    def decide_trading_unit(self, confidence):
+    def decide_trading_unit(self, confidence):  # 정책 신경망이 결정한 행동의 신뢰가 높을수록 매수 또는 매도하는 단위를 크게
         if np.isnan(confidence):
             return self.min_trading_price
         added_trading_price = max(min(
