@@ -1,4 +1,4 @@
-class Environment:
+class Environment:  # 에이전트가 투자할 종목의 차트 데이터 관리
     PRICE_IDX = 4  # 종가의 위치
 
     def __init__(self, chart_data=None):
