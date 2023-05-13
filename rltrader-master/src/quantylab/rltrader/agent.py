@@ -2,7 +2,7 @@ import numpy as np
 from quantylab.rltrader import utils
 
 
-class Agent:
+class Agent:  # 주식을 매수, 매도 하는 투자자 역할
     # 에이전트 상태가 구성하는 값 개수
     # 주식 보유 비율, 손익률, 주당 매수 단가 대비 주가 등락률
     STATE_DIM = 3
