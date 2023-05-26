@@ -31,24 +31,25 @@ class ReinforcementLearner:
                 value_network=None, policy_network=None,
                 output_path='', reuse_models=True, gen_output=True):
         # 인자 확인
+        # 투자 최소 및 최대 단위
         assert min_trading_price > 0
         assert max_trading_price > 0
         assert max_trading_price >= min_trading_price
         assert num_steps > 0
         assert lr > 0
         # 강화학습 설정
-        self.rl_method = rl_method
+        self.rl_method = rl_method  # 강화학습 기법
         self.discount_factor = discount_factor
         self.num_epoches = num_epoches
         self.start_epsilon = start_epsilon
         # 환경 설정
-        self.stock_code = stock_code
-        self.chart_data = chart_data
-        self.environment = Environment(chart_data)
+        self.stock_code = stock_code  # 주식 종목 코드
+        self.chart_data = chart_data  # 일봉 차트 데이터
+        self.environment = Environment(chart_data)  # chart_data를 인자로 하여 Environment 클래스의 인스턴스를 생성
         # 에이전트 설정
-        self.agent = Agent(self.environment, balance, min_trading_price, max_trading_price)
+        self.agent = Agent(self.environment, balance, min_trading_price, max_trading_price)  # 강화학습 환경을 인자로 Agent 클래스의 인스턴스 생성
         # 학습 데이터
-        self.training_data = training_data
+        self.training_data = training_data  # 전처리된 학습 데이
         self.sample = None
         self.training_data_idx = -1
         # 벡터 크기 = 학습 데이터 벡터 크기 + 에이전트 상태 크기
@@ -56,38 +57,38 @@ class ReinforcementLearner:
         if self.training_data is not None:
             self.num_features += self.training_data.shape[1]
         # 신경망 설정
-        self.net = net
-        self.num_steps = num_steps
+        self.net = net  # 신경망 종류
+        self.num_steps = num_steps  # lstm, cnn에서 사용하는 step
         self.lr = lr
-        self.value_network = value_network
-        self.policy_network = policy_network
-        self.reuse_models = reuse_models
+        self.value_network = value_network  # 가치 신경망
+        self.policy_network = policy_network  # 정책 신경망
+        self.reuse_models = reuse_models  # reuse_models가 True이고 모델이 이미 존재하는 경우 재활
         # 가시화 모듈
-        self.visualizer = Visualizer()
-        # 메모리
-        self.memory_sample = []
-        self.memory_action = []
-        self.memory_reward = []
-        self.memory_value = []
-        self.memory_policy = []
-        self.memory_pv = []
-        self.memory_num_stocks = []
-        self.memory_exp_idx = []
+        self.visualizer = Visualizer()  # 에포크마다 투자 결과를 가시화 하기 위해 Visualizer 클래스 객체 생성
+        # 메모리 - 강화학습 과정에서 발생하는 각종 데이터를 저장하기 위한 변수
+        self.memory_sample = []  # 학습 데이터 샘플
+        self.memory_action = []  # 수행한 행동
+        self.memory_reward = []  # 획득한 보상
+        self.memory_value = []  # 행동의 예측 가치
+        self.memory_policy = []  # 행동의 예측 확률
+        self.memory_pv = []  # 포트폴리오 가치
+        self.memory_num_stocks = []  #보유 주식 수
+        self.memory_exp_idx = []  # 탐험 위치
         # 에포크 관련 정보
-        self.loss = 0.
-        self.itr_cnt = 0
-        self.exploration_cnt = 0
-        self.batch_size = 0
+        self.loss = 0.  # 에포크 동안 학습에서 발생한 손실
+        self.itr_cnt = 0  # 수익 발생 횟수
+        self.exploration_cnt = 0  # 탐험 횟수
+        self.batch_size = 0  # 학습 횟
         # 로그 등 출력 경로
-        self.output_path = output_path
+        self.output_path = output_path  # 학습 과정에서 발생하는 로그, 가시화결과 및 학습 종료 후 저장되는 신경망 모델 파일은 지정된 경로에 저장
         self.gen_output = gen_output
 
-    def init_value_network(self, shared_network=None, activation='linear', loss='mse'):
-        if self.net == 'dnn':
+    def init_value_network(self, shared_network=None, activation='linear', loss='mse'):  # 지정된 신경망 종류에 맞게 가치 신경망 생성 - 가치 신경망 : 손익률 회귀 분석 모델
+        if self.net == 'dnn':  
             self.value_network = DNN(
                 input_dim=self.num_features, 
                 output_dim=self.agent.NUM_ACTIONS, 
-                lr=self.lr, shared_network=shared_network,
+                lr=self.lr, shared_network=shared_network,  # shared_network : 신경망의 상단부 - 여러 신경망이 공유할 수 있음
                 activation=activation, loss=loss)
         elif self.net == 'lstm':
             self.value_network = LSTMNetwork(
@@ -103,11 +104,11 @@ class ReinforcementLearner:
                 lr=self.lr, num_steps=self.num_steps, 
                 shared_network=shared_network,
                 activation=activation, loss=loss)
-        if self.reuse_models and os.path.exists(self.value_network_path):
-            self.value_network.load_model(model_path=self.value_network_path)
+        if self.reuse_models and os.path.exists(self.value_network_path):  # reuse_models가 True이고, value_network_path에 지정된 경로에 신경망 모델 파일이 존재하면
+            self.value_network.load_model(model_path=self.value_network_path)  #신경망 모델 파일 불러오기
 
     def init_policy_network(self, shared_network=None, activation='sigmoid', 
-                            loss='binary_crossentropy'):
+                            loss='binary_crossentropy'):  # 정책 신경망 함수와 매우 유사, activation 으로 sigmoid 함수 사용
         if self.net == 'dnn':
             self.policy_network = DNN(
                 input_dim=self.num_features, 
@@ -372,36 +373,36 @@ class ReinforcementLearner:
         return result
 
 
-class DQNLearner(ReinforcementLearner):
-    def __init__(self, *args, value_network_path=None, **kwargs):
+class DQNLearner(ReinforcementLearner):  # DQN 강화학습 클래스 - 가치 신경망으로만 학습
+    def __init__(self, *args, value_network_path=None, **kwargs):  # 생성자
         super().__init__(*args, **kwargs)
         self.value_network_path = value_network_path
-        self.init_value_network()
+        self.init_value_network()  # 가치 신경망 - line 86
 
-    def get_batch(self):
-        memory = zip(
+    def get_batch(self):  # 배치학습 데이터 생성 
+        memory = zip(  # 메모리 배열을 역으로 해서 묶어줌 - 마지막 데이터가 가장 최근 데이터이기 때문
             reversed(self.memory_sample),
             reversed(self.memory_action),
             reversed(self.memory_value),
             reversed(self.memory_reward),
         )
-        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))
-        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
+        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))  # 샘플 배열(모두 0으로)
+        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))  # lable 배열(모두 0으로)
         value_max_next = 0
-        for i, (sample, action, value, reward) in enumerate(memory):
+        for i, (sample, action, value, reward) in enumerate(memory):  # for 문 돌면서 샘플 배열과 lable 배열에 값 채우기
             x[i] = sample
-            r = self.memory_reward[-1] - reward
+            r = self.memory_reward[-1] - reward  # r : 학습에 사용할 보상, reward : 행동을 수행한 시점에서의 손익률
             y_value[i] = value
-            y_value[i, action] = r + self.discount_factor * value_max_next
+            y_value[i, action] = r + self.discount_factor * value_max_next  # 보상 + 할인률 * 다음 상태의 최대 가치
             value_max_next = value.max()
-        return x, y_value, None
+        return x, y_value, None  # 샘플 배열, 가치 신경망 학습 레이블 배열, 정책 신경망 학습 레이블 배열(DQN은 정책 신경망 사용x -> None)
 
 
-class PolicyGradientLearner(ReinforcementLearner):
-    def __init__(self, *args, policy_network_path=None, **kwargs):
+class PolicyGradientLearner(ReinforcementLearner):  # 정책 경사 강화학습 클래스 - 정책 신경망으로만 학습
+    def __init__(self, *args, policy_network_path=None, **kwargs):  # DQN과 동일
         super().__init__(*args, **kwargs)
-        self.policy_network_path = policy_network_path
-        self.init_policy_network()
+        self.policy_network_path = policy_network_path 
+        self.init_policy_network()  # 정책 신경망 - line 110
 
     def get_batch(self):
         memory = zip(
@@ -410,21 +411,21 @@ class PolicyGradientLearner(ReinforcementLearner):
             reversed(self.memory_policy),
             reversed(self.memory_reward),
         )
-        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))
-        y_policy = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
+        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))  # 학습 데이터 및 에이전트 상태로 구성된 샘플 배열 - 배치 데이터 크기, 학습 데이터 특징 크 
+        y_policy = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))  # 정책 신경망 학습을 위한 레이블 배열 - 배치 데이터 크기, 에이전트 행동의 수
         for i, (sample, action, policy, reward) in enumerate(memory):
             x[i] = sample
             r = self.memory_reward[-1] - reward
             y_policy[i, :] = policy
-            y_policy[i, action] = utils.sigmoid(r)
-        return x, None, y_policy
+            y_policy[i, action] = utils.sigmoid(r)  # sigmoid 사용
+        return x, None, y_policy  # 정책 경사는 가치 신경망이 없으므로 두 번째 반환값 None
 
 
-class ActorCriticLearner(ReinforcementLearner):
+class ActorCriticLearner(ReinforcementLearner):  # Actor-Critic 강화학습 클래스 - 가치 신경망과 정책 신경망 모두 사용
     def __init__(self, *args, shared_network=None, 
         value_network_path=None, policy_network_path=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if shared_network is None:
+        if shared_network is None:  # 가치 신경망과 정책 신경망의 상단부 레이어 공유
             self.shared_network = Network.get_shared_network(
                 net=self.net, num_steps=self.num_steps, 
                 input_dim=self.num_features,
@@ -447,6 +448,7 @@ class ActorCriticLearner(ReinforcementLearner):
             reversed(self.memory_reward),
         )
         x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))
+        # y_value와 y_policy를 모두 가짐
         y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
         y_policy = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
         value_max_next = 0
@@ -461,11 +463,11 @@ class ActorCriticLearner(ReinforcementLearner):
         return x, y_value, y_policy
 
 
-class A2CLearner(ActorCriticLearner):
+class A2CLearner(ActorCriticLearner):  # 액터-크리틱을 상
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def get_batch(self):
+    def get_batch(self):  # advantage(상태-행동 가치에 상태 가치를 뺀 값)로 정책 신경망 학습
         memory = zip(
             reversed(self.memory_sample),
             reversed(self.memory_action),
@@ -484,20 +486,20 @@ class A2CLearner(ActorCriticLearner):
             reward_next = reward
             y_value[i, :] = value
             y_value[i, action] = np.tanh(r + self.discount_factor * value_max_next)
-            advantage = y_value[i, action] - y_value[i].mean()
+            advantage = y_value[i, action] - y_value[i].mean()  # 가치 신경망의 예측 상태-행동 가치 값의 균평균
             y_policy[i, :] = policy
             y_policy[i, action] = utils.sigmoid(advantage)
             value_max_next = value.max()
         return x, y_value, y_policy
 
 
-class A3CLearner(ReinforcementLearner):
-    def __init__(self, *args, list_stock_code=None, 
+class A3CLearner(ReinforcementLearner):  # A3C 강화학습 클래스 (A2C를 병렬적으로 수행)
+    def __init__(self, *args, list_stock_code=None,   # A2C와 달리 리스트로 학습할 종목에 대한 여러 데이터를 인자로 받음
         list_chart_data=None, list_training_data=None,
         list_min_trading_price=None, list_max_trading_price=None, 
         value_network_path=None, policy_network_path=None,
         **kwargs):
-        assert len(list_training_data) > 0
+        assert len(list_training_data) > 0  # 리스트의 크키만큼 A2C 클래스의 객체 생성
         super().__init__(*args, **kwargs)
         self.num_features += list_training_data[0].shape[1]
 
@@ -530,12 +532,13 @@ class A3CLearner(ReinforcementLearner):
                 policy_network=self.policy_network, **kwargs)
             self.learners.append(learner)
 
-    def run(self, learning=True):
+    def run(self, learning=True):  # A3C 수행함수 - A2C를 병렬로 동시 수행
         threads = []
         for learner in self.learners:
             threads.append(threading.Thread(
-                target=learner.run, daemon=True, kwargs={'learning': learning}
+                target=learner.run, daemon=True, kwargs={'learning': learning}  # A2C 클래스 객체의 run 함수 동시 수행
             ))
+        # 모든 A2C 강화학습 이후에 A3C
         for thread in threads:
             thread.start()
         for thread in threads:
