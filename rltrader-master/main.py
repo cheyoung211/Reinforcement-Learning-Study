@@ -139,7 +139,7 @@ if __name__ == '__main__':
             list_min_trading_price.append(min_trading_price)
             list_max_trading_price.append(max_trading_price)
 
-    if args.rl_method == 'a3c':  #A3C 강화학습을 위해 A3CLearner 클래스 객체를 생
+    if args.rl_method == 'a3c':  #A3C 강화학습을 위해 A3CLearner 클래스 객체를 생성
         learner = A3CLearner(**{
             **common_params, 
             'list_stock_code': list_stock_code, 
