@@ -48,7 +48,7 @@ if __name__ == '__main__':
         os.makedirs(output_path)
 
     # 파라미터 기록
-    params = json.dumps(vars(args))  #입력받은 인자를 json 형태로 저장
+    params = json.dumps(vars(args))  #입력받은 인자를 json 형식으로 저장
     with open(os.path.join(output_path, 'params.json'), 'w') as f:  #경로에 dictoinary로 만들어서 'params.json' 파일에 json 형태로 저장, 출력 경로에 로그 파일 성생성
         f.write(params)
 
