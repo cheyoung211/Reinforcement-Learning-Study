@@ -463,7 +463,7 @@ class ActorCriticLearner(ReinforcementLearner):  # Actor-Critic 강화학습 클
         return x, y_value, y_policy
 
 
-class A2CLearner(ActorCriticLearner):  # 액터-크리틱을 상
+class A2CLearner(ActorCriticLearner):  # 액터-크리틱을 사용 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
