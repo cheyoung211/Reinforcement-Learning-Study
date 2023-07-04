@@ -153,7 +153,7 @@ if __name__ == '__main__':
     assert learner is not None
 
     if args.mode in ['train', 'test', 'update']:
-        learner.run(learning=learning)  #강학습 시작
+        learner.run(learning=learning)  #강화학습 시작
         if args.mode in ['train', 'update']:
             learner.save_models()  #학습한 신경망 모델 저장
     elif args.mode == 'predict':
